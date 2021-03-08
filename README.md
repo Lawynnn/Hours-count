@@ -11,10 +11,10 @@
 ```
 "hours"
 {
-  "driver"			"mysql"
-  "host"				"hostname"
-  "database"			"hours"
-  "user"				"username"
-  "pass"				"password"
+  "driver"      "mysql"
+  "host"        "hostname"
+  "database"		"hours"
+  "user"        "username"
+  "pass"        "password"
 }
 ```
