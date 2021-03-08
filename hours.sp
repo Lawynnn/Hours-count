@@ -107,6 +107,11 @@ public Action Command_hours(int client, int args)
 	}
 }
 
+public int menu_ore(Menu menu, MenuAction action, int client, int pos)
+{
+	switch (action) { case MenuAction_End: { delete menu; } }
+}
+
 public Action oretimer(Handle timer)
 {
 	if(IsPluginEnabled())
