@@ -1,6 +1,7 @@
 # CHANGELOG
 ```
 > Added "!tophours"
+> Added natives
 > Fixed bugs
 ```
 
