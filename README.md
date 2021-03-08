@@ -1,3 +1,9 @@
+# CHANGELOG
+```
+> Added "!tophours"
+> Fixed bugs
+```
+
 # DATABASE SQLITE
 ```
 "hours"
