@@ -13,7 +13,7 @@
 {
   "driver"      "mysql"
   "host"        "hostname"
-  "database"		"hours"
+  "database"    "hours"
   "user"        "username"
   "pass"        "password"
 }
