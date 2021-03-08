@@ -1,5 +1,5 @@
 #define PLUGIN_AUTHOR "Lawyn"
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.33"
 
 #include <sourcemod>
 #include <sdktools>
@@ -14,7 +14,7 @@ public Plugin myinfo =
 	url = "https://nevergo.ro"
 };
 
-#define DB_NAME "global"
+#define DB_NAME "hours"
 #define DB_TABLE "hours_table"
 #define PREFIX " \x01[SM]\x01"
 
