@@ -3,6 +3,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <lawynore>
 
 public Plugin myinfo = 
 {
@@ -13,11 +14,11 @@ public Plugin myinfo =
 	url = "https://nevergo.ro"
 };
 
-#define DB_NAME "hours"
+#define DB_NAME "global"
 #define DB_TABLE "hours_table"
-#define PREFIX " \x01[SM] \x01"
+#define PREFIX " \x01[SM]\x01"
 
-new DB;
+Handle DB;
 
 int g_iOre[MAXPLAYERS + 1];
 int g_iMinute[MAXPLAYERS + 1];
@@ -31,6 +32,93 @@ public void OnPluginStart()
 	CreateConVar( "sm_hours_menu", "0", "Set 0 for display hours in chat or 1 to display into a menu", FCVAR_PLUGIN );
 	RegConsoleCmd("sm_hours", Command_hours); // ENG Version
 	RegConsoleCmd("sm_ore", Command_hours); // RO Version
+	
+	CreateConVar( "sm_top_enable", "1", "Set 1 to enable top menu or 0 to disable", FCVAR_PLUGIN );
+	RegConsoleCmd("sm_tophours", Command_top); // ENG Version
+	RegConsoleCmd("sm_topore", Command_top); // RO Version
+}
+
+public Action Command_top(int client, int args)
+{
+	char steamid[64], qwe[256], nume[MAX_NAME_LENGTH], format_cell1[256], format_cell2[256];
+	int topnr = 0;
+	if(IsTopEnabled())
+	{
+		Menu menu = new Menu(top_menu_ore);
+		menu.SetTitle("Top hours played");
+		Format(qwe, sizeof(qwe), "SELECT name, steamid, ore, minute, secunde FROM %s ORDER BY ore DESC LIMIT 500", DB_TABLE);
+		Handle asd = SQL_Query(DB, qwe);
+		if(asd != INVALID_HANDLE)
+		{
+			while(SQL_FetchRow(asd))
+			{
+				SQL_FetchString(asd, 0, nume, sizeof(nume));
+				SQL_FetchString(asd, 1, steamid, sizeof(steamid));
+				int ore = SQL_FetchInt(asd, 2);
+				int min = SQL_FetchInt(asd, 3);
+				int sec = SQL_FetchInt(asd, 4);
+				if(StrContains(steamid, "STEAM_", false) != -1)
+				{
+					topnr += 1;
+					Format(format_cell2, sizeof(format_cell2), "%i. %s (%ih %im %is)", topnr, nume, ore, min, sec);
+					Format(format_cell1, sizeof(format_cell1), "%s", steamid);
+					menu.AddItem(format_cell1, format_cell2, (topnr <= 3) ? ITEMDRAW_DEFAULT:ITEMDRAW_DISABLED);
+				}
+			}
+			menu.Display(client, MENU_TIME_FOREVER);
+		}
+	}
+	else
+	{
+		PrintToChat(client, "%s Top menu is disabled!");
+	}
+}
+
+public int top_menu_ore(Menu menu, MenuAction action, int client, int pos)
+{
+	switch(action)
+	{
+		case MenuAction_End: { delete menu; }
+	}
+}
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	CreateNative("GetClientHours", Native_GetClientHours);
+	CreateNative("GetClientMinutes", Native_GetClientMinutes);
+	CreateNative("GetClientSeconds", Native_GetClientSeconds);
+	return APLRes_Success;
+}
+
+public any Native_GetClientHours(Handle plugin, int argc)
+{
+	int client = GetNativeCell(1);
+	if (client == -1) { ThrowNativeError(1, "[SM-NATIVE] Client does not exist! (GetClientHours)"); }
+	else
+	{
+		int client = GetNativeCell(1);
+		return GetDBOre(client);
+	}
+}
+public any Native_GetClientMinutes(Handle plugin, int argc)
+{
+	int client = GetNativeCell(1);
+	if (client == -1) { ThrowNativeError(1, "[SM-NATIVE] Client does not exist! (GetClientMinutes)"); }
+	else
+	{
+		int client = GetNativeCell(1);
+		return GetDBMin(client);
+	}
+}
+public any Native_GetClientSeconds(Handle plugin, int argc)
+{
+	int client = GetNativeCell(1);
+	if (client == -1) { ThrowNativeError(1, "[SM-NATIVE] Client does not exist! (GetClientSeconds)"); }
+	else
+	{
+		int client = GetNativeCell(1);
+		return GetDBSec(client);
+	}
 }
 
 public Action Command_hours(int client, int args)
@@ -120,20 +208,59 @@ public Action oretimer(Handle timer)
 		{
 			if(IsClientInGame(i))
 			{
-				g_iSecunde[i] += 1;
-				if(g_iSecunde[i] >= 60)
+				SetSecunde(i, GetDBSec(i) + 1);
+				if(GetDBSec(i) >= 60)
 				{
-					g_iSecunde[i] = 0;
-					g_iMinute[i] += 1;
+					SetSecunde(i, 0);
+					SetMinute(i, GetDBMin(i) + 1);
 				}
-				if(g_iMinute[i] >= 60)
+				if(GetDBMin(i) >= 60)
 				{
-					g_iMinute[i] = 0;
-					g_iOre[i] += 1;
+					SetMinute(i, 0);
+					SetOre(i, GetDBOre(i) + 1);
 				}
-				WriteDB(i, g_iOre[i], g_iMinute[i], g_iSecunde[i])
+				WriteDB(i, GetDBOre(i), GetDBMin(i), GetDBSec(i));
 			}
 		}
+	}
+}
+
+void SetOre(int client, int ore)
+{
+	char qwe[256], steamid[64], nume[MAX_NAME_LENGTH];
+	GetClientName(client, nume, sizeof(nume));
+	GetClientAuthString(client, steamid, sizeof(steamid));
+	Format(qwe, sizeof(qwe), "UPDATE %s SET name='%s', ore='%i' WHERE steamid='%s'", DB_TABLE, nume, ore, steamid);
+	Handle asd = SQL_Query(DB, qwe);
+	if(asd == INVALID_HANDLE)
+	{
+		PrintToChatAll("!!DB ERROR!!");
+	}
+}
+
+void SetSecunde(int client, int sec)
+{
+	char qwe[256], steamid[64], nume[MAX_NAME_LENGTH];
+	GetClientName(client, nume, sizeof(nume));
+	GetClientAuthString(client, steamid, sizeof(steamid));
+	Format(qwe, sizeof(qwe), "UPDATE %s SET name='%s', secunde='%i' WHERE steamid='%s'", DB_TABLE, nume, sec, steamid);
+	Handle asd = SQL_Query(DB, qwe);
+	if(asd == INVALID_HANDLE)
+	{
+		PrintToChatAll("!!DB ERROR!!");
+	}
+}
+
+void SetMinute(int client, int min)
+{
+	char qwe[256], steamid[64], nume[MAX_NAME_LENGTH];
+	GetClientName(client, nume, sizeof(nume));
+	GetClientAuthString(client, steamid, sizeof(steamid));
+	Format(qwe, sizeof(qwe), "UPDATE %s SET name='%s', minute='%i' WHERE steamid='%s'", DB_TABLE, nume, min, steamid);
+	Handle asd = SQL_Query(DB, qwe);
+	if(asd == INVALID_HANDLE)
+	{
+		PrintToChatAll("!!DB ERROR!!");
 	}
 }
 
@@ -143,9 +270,9 @@ void WriteDB(int client, int ore, int minute, int secunde)
 	char nick[MAX_NAME_LENGTH];
 	GetClientAuthString(client, steamid, sizeof(steamid));
 	GetClientName(client, nick, sizeof(nick));
-	new String:query[256];
+	char query[256];
 	Format(query, sizeof(query), "SELECT steamid FROM %s WHERE steamid='%s'", DB_TABLE, steamid) 
-	new Handle:hQuery = SQL_Query(DB, query); 
+	Handle hQuery = SQL_Query(DB, query); 
 	if(hQuery != INVALID_HANDLE)
 	{
 		if(!SQL_FetchRow(hQuery))
@@ -155,7 +282,7 @@ void WriteDB(int client, int ore, int minute, int secunde)
 		}
 		else
 		{
-			Format(query, sizeof(query), "UPDATE %s SET ore='%i', minute='%i', secunde='%i' WHERE steamid='%s'", DB_TABLE, ore, minute, secunde, steamid);
+			Format(query, sizeof(query), "UPDATE %s SET ore='%i', minute='%i', secunde='%i', name='%s' WHERE steamid='%s'", DB_TABLE, ore, minute, secunde, nick, steamid);
 			hQuery = SQL_Query(DB, query);
 		}
 	}
@@ -216,7 +343,7 @@ int GetDBSec(int client)
 
 void ConnectDB()
 {
-	new String:error[128];
+	char error[128];
 	DB = SQL_Connect(DB_NAME, true, error, sizeof(error));
 	if(DB == INVALID_HANDLE) 
 	{
@@ -228,10 +355,10 @@ void ConnectDB()
 		PrintToServer("Connection successfully to %s database", DB_NAME);
 		char connstring[256];
 		Format(connstring, sizeof(connstring), "CREATE TABLE IF NOT EXISTS %s (name TEXT, steamid TEXT, ore INTEGER, minute INTEGER, secunde INTEGER);", DB_TABLE);
-		new quer = SQL_FastQuery(DB, connstring); 
+		bool quer = SQL_FastQuery(DB, connstring); 
 		if(quer == false)
 		{
-			new String:error[256];
+			char error[256];
 			SQL_GetError(quer, error, sizeof(error));
 			PrintToServer("Problem with %s table: %s", DB_TABLE, error)
 		}
@@ -250,6 +377,15 @@ bool IsMenuEnabled()
 bool IsPluginEnabled()
 {
 	if(GetConVarInt(FindConVar("sm_hours_enable")) == 1)
+	{
+		return true;
+	}
+	return false;
+}
+
+bool IsTopEnabled()
+{
+	if(GetConVarInt(FindConVar("sm_top_enable")) == 1)
 	{
 		return true;
 	}
