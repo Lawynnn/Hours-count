@@ -15,6 +15,7 @@ public Plugin myinfo =
 
 #define DB_NAME "hours"
 #define DB_TABLE "hours_table"
+#define PREFIX " \x01[SM] \x01"
 
 new DB;
 
@@ -36,7 +37,73 @@ public Action Command_hours(int client, int args)
 {
 	if(IsPluginEnabled())
 	{
-		
+		if(!IsMenuEnabled())
+		{
+			if(args == 0)
+			{
+				PrintToChat(client, "%s You have \x09%i \x01%s, \x09%i \x01minute%s and \x09%i \x01second%s played on this server!", PREFIX, GetDBOre(client), (GetDBOre(client) == 1) ? "hour":"hours", GetDBMin(client), (GetDBMin(client) == 1)?"":"s", GetDBSec(client), (GetDBSec(client) == 1)?"":"s");
+			}
+			else if(args == 1)
+			{
+				char arg1[64];
+				GetCmdArg(1, arg1, sizeof(arg1));
+				int target = FindTarget(client, arg1, true, false);
+				if(target == -1)
+				{
+					PrintToChat(client, "%s Target is not available!", PREFIX);
+					return Plugin_Handled;
+				}
+				PrintToChat(client, "%s You have \x09%i \x01%s, \x09%i \x01minute%s and \x09%i \x01second%s played on this server!", PREFIX, GetDBOre(target), (GetDBOre(target) == 1) ? "hour":"hours", GetDBMin(target), (GetDBMin(target) == 1)?"":"s", GetDBSec(target), (GetDBSec(target) == 1)?"":"s");
+			}
+			else
+			{
+				PrintToChat(client, "%s Use: \x09sm_hours <client>", PREFIX);
+			}
+		}
+		else
+		{
+			char orefm[256], minfm[256], secfm[256];
+			if(args == 0)
+			{
+				Format(orefm, sizeof(orefm), "Hours played: %i", GetDBOre(client));
+				Format(minfm, sizeof(minfm), "Minutes played: %i", GetDBMin(client));
+				Format(secfm, sizeof(secfm), "Seconds played: %i", GetDBSec(client));
+				Menu menu = new Menu(menu_ore);
+				menu.SetTitle("Played time");
+				menu.AddItem("", orefm, ITEMDRAW_DISABLED);
+				menu.AddItem("", minfm, ITEMDRAW_DISABLED);
+				menu.AddItem("", secfm, ITEMDRAW_DISABLED);
+				menu.Display(client, MENU_TIME_FOREVER);
+			}
+			else if(args == 1)
+			{
+				char arg1[64];
+				GetCmdArg(1, arg1, sizeof(arg1));
+				int target = FindTarget(client, arg1, true, false);
+				if(target == -1)
+				{
+					PrintToChat(client, "%s Target is not available!", PREFIX);
+					return Plugin_Handled;
+				}
+				Format(orefm, sizeof(orefm), "Hours played: %i", GetDBOre(client));
+				Format(minfm, sizeof(minfm), "Minutes played: %i", GetDBMin(client));
+				Format(secfm, sizeof(secfm), "Seconds played: %i", GetDBSec(client));
+				Menu menu = new Menu(menu_ore);
+				menu.SetTitle("%N Played time", target);
+				menu.AddItem("", orefm, ITEMDRAW_DISABLED);
+				menu.AddItem("", minfm, ITEMDRAW_DISABLED);
+				menu.AddItem("", secfm, ITEMDRAW_DISABLED);
+				menu.Display(client, MENU_TIME_FOREVER);
+			}
+			else
+			{
+				PrintToChat(client, "%s Use: \x09sm_hours <client>", PREFIX);
+			}
+		}
+	}
+	else
+	{
+		PrintToChat(client, "%s Plugin is disabled!", PREFIX);
 	}
 }
 
@@ -87,6 +154,59 @@ void WriteDB(int client, int ore, int minute, int secunde)
 			hQuery = SQL_Query(DB, query);
 		}
 	}
+}
+
+int GetDBOre(int client)
+{
+	char steamid[64];
+	GetClientAuthString(client, steamid, sizeof(steamid));
+	char qwe[256];
+	Format(qwe, sizeof(qwe), "SELECT ore FROM %s WHERE steamid='%s'", DB_TABLE, steamid);
+	Handle asd = SQL_Query(DB, qwe);
+	if(asd != INVALID_HANDLE)
+	{
+		if(SQL_FetchRow(asd))
+		{
+			int ore = SQL_FetchInt(asd, 0);
+			return ore;
+		}
+	}
+	return -1;
+}
+
+int GetDBMin(int client)
+{
+	char steamid[64];
+	GetClientAuthString(client, steamid, sizeof(steamid));
+	char qwe[256];
+	Format(qwe, sizeof(qwe), "SELECT minute FROM %s WHERE steamid='%s'", DB_TABLE, steamid);
+	Handle asd = SQL_Query(DB, qwe);
+	if(asd != INVALID_HANDLE)
+	{
+		if(SQL_FetchRow(asd))
+		{
+			int min = SQL_FetchInt(asd, 0);
+			return min;
+		}
+	}
+	return -1;
+}
+int GetDBSec(int client)
+{
+	char steamid[64];
+	GetClientAuthString(client, steamid, sizeof(steamid));
+	char qwe[256];
+	Format(qwe, sizeof(qwe), "SELECT secunde FROM %s WHERE steamid='%s'", DB_TABLE, steamid);
+	Handle asd = SQL_Query(DB, qwe);
+	if(asd != INVALID_HANDLE)
+	{
+		if(SQL_FetchRow(asd))
+		{
+			int sec = SQL_FetchInt(asd, 0);
+			return sec
+		}
+	}
+	return -1;
 }
 
 void ConnectDB()
