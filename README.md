@@ -18,3 +18,9 @@
   "pass"        "password"
 }
 ```
+
+# HOW TO ADD DATABASE?
+```
+Go to addons/sourcemod/configs and find databases.cfg
+Insert database in databases.cfg and all done
+```
