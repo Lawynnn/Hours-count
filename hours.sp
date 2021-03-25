@@ -7,11 +7,11 @@
 
 public Plugin myinfo = 
 {
-	name = "[NEVERGO] Hours",
+	name = "Lawyn Hours Counter",
 	author = PLUGIN_AUTHOR,
 	description = "Hours count plugin by Lawyn#5015",
 	version = PLUGIN_VERSION,
-	url = "https://nevergo.ro"
+	url = "JBGO.LALEAGANE.RO"
 };
 
 #define DB_NAME "hours"
